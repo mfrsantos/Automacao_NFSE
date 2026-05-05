@@ -65,6 +65,15 @@ const handleLogout = async () => {
     }
 };
 
+const getCSVField = (linha, nomes) => {
+    for (const nome of nomes) {
+        if (linha[nome] != null && String(linha[nome]).trim() !== '') {
+            return String(linha[nome]).trim();
+        }
+    }
+    return '';
+};
+
 const handleSalvarManual = async () => {
     const item = {
         tipo: document.getElementById('mTipo').value,
@@ -123,11 +132,11 @@ const handleCSVImport = async (event) => {
             .filter(item => item.mes === mesAtual);
 
         for (const linha of dados) {
-            const pedido = (linha.Pedido || linha['Nº PC'] || linha['NC PC'] || linha['Numero PC'] || '').trim();
-            const codFor = (linha.CodFornecedor || linha['CodFornecedor'] || linha['Cod. Fornecedor'] || '').trim();
-            const valor = parseMoeda(linha.Valor);
-            const vencimento = (linha.Vencimento || '').trim();
-            const localCsv = linha.Filial ? linha.Filial.trim() : '';
+                const pedido = getCSVField(linha, ['Pedido', 'Nº PC', 'NC PC', 'Numero PC', 'Nr PC', 'Nro PC', 'Nr. PC', 'Número PC']);
+            const codFor = getCSVField(linha, ['CodFornecedor', 'CodFornecedor', 'Cod. Fornecedor', 'CodFor', 'Cod For', 'Cod. For', 'Cód. Fornecedor']);
+            const valor = parseMoeda(getCSVField(linha, ['Valor', 'VALOR', 'valor', 'Valor (R$)']));
+            const vencimento = getCSVField(linha, ['Vencimento', 'Venc', 'Vencim', 'Venc.', 'Vencimento (DD/MM)', 'Vencimento (DD/MM/AAAA)']);
+            const localCsv = getCSVField(linha, ['Filial', 'filial', 'FILIAL']);
             const local = localCsv || (localSelecionado !== 'TODOS' ? localSelecionado : '');
 
             if (!codFor || !pedido) {
@@ -318,23 +327,23 @@ window.abrirModalItem = async (id) => {
 
         if (item.tipo === 'SERVICO') {
             abrirModal("Tratar Serviço", corpoEmail, [
-                { txt: "ENVIAR E-MAIL", cl: "btn-primary-modal", fn: () => {
+                { txt: "ENVIAR E-MAIL", cl: "btn-primary-modal", fn: async () => {
                     window.location.href = `mailto:${emails.servicos}?cc=${emails.ccServicos}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpoEmail)}`;
-                    atualizarItem(id, 'status', 'Enviado ao CSC');
+                    await atualizarItem(id, 'status', 'Enviado ao CSC');
                     fecharModal();
                 }},
-                { txt: "MARCAR COMO ENVIADO", cl: "btn-secondary-modal", fn: () => {
-                    atualizarItem(id, 'status', 'Enviado ao CSC');
+                { txt: "MARCAR COMO ENVIADO", cl: "btn-secondary-modal", fn: async () => {
+                    await atualizarItem(id, 'status', 'Enviado ao CSC');
                     fecharModal();
                 }}
             ]);
         } else {
             const textoCopia = corpoEmail;
             abrirModal("Copiar Dados Produto", textoCopia, [
-                { txt: "COPIAR E MARCAR", cl: "btn-primary-modal", fn: () => {
-                    navigator.clipboard.writeText(textoCopia).then(() => {
+                { txt: "COPIAR E MARCAR", cl: "btn-primary-modal", fn: async () => {
+                    navigator.clipboard.writeText(textoCopia).then(async () => {
                         mostrarSucesso("Mensagem copiada!");
-                        atualizarItem(id, 'status', 'Enviado ao CSC');
+                        await atualizarItem(id, 'status', 'Enviado ao CSC');
                         fecharModal();
                     });
                 }}
