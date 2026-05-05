@@ -372,6 +372,14 @@ const abrirModal = (t, p, btns) => {
     document.getElementById('modalApp').style.display = 'flex';
 };
 
+const fecharModal = () => {
+    const modal = document.getElementById('modalApp');
+    if (!modal) return;
+    modal.style.display = 'none';
+    document.getElementById('modalPreview').innerText = '';
+    document.getElementById('modalActions').innerHTML = '';
+};
+
 const showLoading = () => {
     document.getElementById('loadingIndicator').style.display = 'block';
 };
