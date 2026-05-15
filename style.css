@@ -65,6 +65,13 @@ td { padding: 10px 12px; border-bottom: 1px solid #2d3748; }
 
 /* Badges e Linhas */
 .row-enviada { opacity: 0.5; }
+.table-group-row td { background: rgba(52, 152, 219, 0.3); color: #64b5f6; font-weight: 800; padding: 12px; border-bottom: 2px solid #2d3748; letter-spacing: 0.05em; font-size: 12px; text-transform: uppercase; }
+.row-grupo-1 td { background: rgba(52, 152, 219, 0.06); }
+.row-grupo-2 td { background: rgba(255, 195, 0, 0.06); }
+.row-grupo-3 td { background: rgba(46, 204, 113, 0.06); }
+.row-grupo-1 { border-left: 4px solid rgba(52, 152, 219, 0.6); }
+.row-grupo-2 { border-left: 4px solid rgba(255, 195, 0, 0.6); }
+.row-grupo-3 { border-left: 4px solid rgba(46, 204, 113, 0.6); }
 .status-badge { padding: 4px 8px; border-radius: 20px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
 .status-pendente { background: rgba(231, 76, 60, 0.2); color: #ff7675; }
 .status-enviado { background: rgba(46, 204, 113, 0.2); color: #55efc4; }

@@ -65,15 +65,6 @@ const handleLogout = async () => {
     }
 };
 
-const getCSVField = (linha, nomes) => {
-    for (const nome of nomes) {
-        if (linha[nome] != null && String(linha[nome]).trim() !== '') {
-            return String(linha[nome]).trim();
-        }
-    }
-    return '';
-};
-
 const handleSalvarManual = async () => {
     const item = {
         tipo: document.getElementById('mTipo').value,
@@ -132,11 +123,11 @@ const handleCSVImport = async (event) => {
             .filter(item => item.mes === mesAtual);
 
         for (const linha of dados) {
-                const pedido = getCSVField(linha, ['Pedido', 'Nº PC', 'NC PC', 'Numero PC', 'Nr PC', 'Nro PC', 'Nr. PC', 'Número PC']);
-            const codFor = getCSVField(linha, ['CodFornecedor', 'CodFornecedor', 'Cod. Fornecedor', 'CodFor', 'Cod For', 'Cod. For', 'Cód. Fornecedor']);
-            const valor = parseMoeda(getCSVField(linha, ['Valor', 'VALOR', 'valor', 'Valor (R$)']));
-            const vencimento = getCSVField(linha, ['Vencimento', 'Venc', 'Vencim', 'Venc.', 'Vencimento (DD/MM)', 'Vencimento (DD/MM/AAAA)']);
-            const localCsv = getCSVField(linha, ['Filial', 'filial', 'FILIAL']);
+            const pedido = (linha.Pedido || linha['Nº PC'] || linha['NC PC'] || linha['Numero PC'] || '').trim();
+            const codFor = (linha.CodFornecedor || linha['CodFornecedor'] || linha['Cod. Fornecedor'] || '').trim();
+            const valor = parseMoeda(linha.Valor);
+            const vencimento = (linha.Vencimento || '').trim();
+            const localCsv = linha.Filial ? linha.Filial.trim() : '';
             const local = localCsv || (localSelecionado !== 'TODOS' ? localSelecionado : '');
 
             if (!codFor || !pedido) {
@@ -211,6 +202,25 @@ const handleCleanupImport = async () => {
     }
 };
 
+const getGrupoExibicao = (item) => {
+    if (item.status === 'Enviado ao CSC') return 3;
+    if (item.pedido && String(item.pedido).trim() !== '') return 1;
+    return 2;
+};
+
+const getTextoGrupo = (group) => {
+    if (group === 1) return 'Notas com Nº PC';
+    if (group === 2) return 'Notas Pendentes';
+    return 'Notas enviadas ao CSC';
+};
+
+const criarLinhaGrupo = (texto, colSpan = 10) => {
+    const tr = document.createElement('tr');
+    tr.className = 'table-group-row';
+    tr.innerHTML = `<td colspan="${colSpan}">${texto}</td>`;
+    return tr;
+};
+
 export const renderizarDados = () => {
     if (!dadosCarregados) return;
 
@@ -224,48 +234,73 @@ export const renderizarDados = () => {
             return i.mes === mesAtu && (localF === "TODOS" || i.local === localF) && termo.includes(busca);
         })
         .sort((a, b) => {
-            if (a.status === "Pendente" && b.status !== "Pendente") return -1;
-            if (a.status !== "Pendente" && b.status === "Pendente") return 1;
-            return 0;
+            const ga = getGrupoExibicao(a);
+            const gb = getGrupoExibicao(b);
+            if (ga !== gb) return ga - gb;
+            if (ga === 1) {
+                return String(a.pedido || '').localeCompare(String(b.pedido || ''), undefined, { numeric: true, sensitivity: 'base' }) || String(a.fornecedor || '').localeCompare(String(b.fornecedor || ''), undefined, { sensitivity: 'base' });
+            }
+            return String(a.fornecedor || '').localeCompare(String(b.fornecedor || ''), undefined, { sensitivity: 'base' });
         });
 
     const tServ = document.getElementById('tabelaServico');
     const tProd = document.getElementById('tabelaProduto');
     tServ.innerHTML = ""; tProd.innerHTML = "";
 
+    const servicos = itens.filter(item => item.tipo === "SERVICO");
+    const produtos = itens.filter(item => item.tipo === "PRODUTO");
+
     let pVal = 0, eVal = 0, pCount = 0, eCount = 0;
 
-    itens.forEach(item => {
-        const isEnv = item.status === "Enviado ao CSC";
-        const tr = document.createElement('tr');
-        if (isEnv) tr.className = "row-enviada";
+    const renderGrupo = (lista, container) => {
+        let ultimoGrupo = null;
+        lista.forEach(item => {
+            const grupo = getGrupoExibicao(item);
+            if (grupo !== ultimoGrupo) {
+                container.appendChild(criarLinhaGrupo(getTextoGrupo(grupo), 10));
+                ultimoGrupo = grupo;
+            }
 
-        const tdPedido = `<td><input type="text" value="${item.pedido || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'pedido', this.value)"></td>`;
-        const tdValor = `<td class="col-valor">R$ <input type="text" value="${fmtMoeda(item.valor)}" class="input-tabela col-valor" onblur="atualizarCampo('${item.id}', 'valor', this.value)"></td>`;
+            const isEnv = item.status === "Enviado ao CSC";
+            if (!isEnv) {
+                pVal += item.valor;
+                pCount++;
+            } else {
+                eVal += item.valor;
+                eCount++;
+            }
+            const tr = document.createElement('tr');
+            tr.classList.add(`row-grupo-${grupo}`);
+            if (isEnv) tr.classList.add('row-enviada');
 
-        const htmlBase = `
-            <td>${item.local}</td>
-            ${tdPedido}
-            <td>${item.codFor || ''}</td>
-            <td>${item.fornecedor}</td>
-            <td>${item.cc || ''}</td>
-            ${tdValor}
-            <td><input type="text" value="${item.vencimento || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'vencimento', this.value)"></td>
-            <td>${item.pagamento}</td>
-            <td><span class="status-badge ${isEnv ? 'status-enviado' : 'status-pendente'}">${item.status}</span></td>`;
+            const tdPedido = `<td><input type="text" value="${item.pedido || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'pedido', this.value)"></td>`;
+            const tdValor = `<td class="col-valor">R$ <input type="text" value="${fmtMoeda(item.valor)}" class="input-tabela col-valor" onblur="atualizarCampo('${item.id}', 'valor', this.value)"></td>`;
 
-        !isEnv ? (pVal += item.valor, pCount++) : (eVal += item.valor, eCount++);
+            const htmlBase = `
+                <td>${item.local}</td>
+                ${tdPedido}
+                <td>${item.codFor || ''}</td>
+                <td>${item.fornecedor}</td>
+                <td>${item.cc || ''}</td>
+                ${tdValor}
+                <td><input type="text" value="${item.vencimento || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'vencimento', this.value)"></td>
+                <td>${item.pagamento}</td>
+                <td><span class="status-badge ${isEnv ? 'status-enviado' : 'status-pendente'}">${item.status}</span></td>`;
 
-        const acoes = `<td>
-            <button onclick="abrirModalItem('${item.id}')" class="btn-acao">
-                <i class="fas ${item.tipo === 'SERVICO' ? 'fa-paper-plane' : 'fa-copy'}"></i>
-            </button>
-            <button onclick="removerItemUI('${item.id}')" class="btn-acao-del"><i class="fas fa-trash"></i></button>
-        </td>`;
+            const acoes = `<td>
+                <button onclick="abrirModalItem('${item.id}')" class="btn-acao">
+                    <i class="fas ${item.tipo === 'SERVICO' ? 'fa-paper-plane' : 'fa-copy'}"></i>
+                </button>
+                <button onclick="removerItemUI('${item.id}')" class="btn-acao-del"><i class="fas fa-trash"></i></button>
+            </td>`;
 
-        tr.innerHTML = htmlBase + acoes;
-        item.tipo === "SERVICO" ? tServ.appendChild(tr) : tProd.appendChild(tr);
-    });
+            tr.innerHTML = htmlBase + acoes;
+            container.appendChild(tr);
+        });
+    };
+
+    renderGrupo(servicos, tServ);
+    renderGrupo(produtos, tProd);
 
     document.getElementById('totalPendente').innerText = "R$ " + fmtMoeda(pVal);
     document.getElementById('totalEnviado').innerText = "R$ " + fmtMoeda(eVal);
@@ -327,23 +362,23 @@ window.abrirModalItem = async (id) => {
 
         if (item.tipo === 'SERVICO') {
             abrirModal("Tratar Serviço", corpoEmail, [
-                { txt: "ENVIAR E-MAIL", cl: "btn-primary-modal", fn: async () => {
+                { txt: "ENVIAR E-MAIL", cl: "btn-primary-modal", fn: () => {
                     window.location.href = `mailto:${emails.servicos}?cc=${emails.ccServicos}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpoEmail)}`;
-                    await atualizarItem(id, 'status', 'Enviado ao CSC');
+                    atualizarItem(id, 'status', 'Enviado ao CSC');
                     fecharModal();
                 }},
-                { txt: "MARCAR COMO ENVIADO", cl: "btn-secondary-modal", fn: async () => {
-                    await atualizarItem(id, 'status', 'Enviado ao CSC');
+                { txt: "MARCAR COMO ENVIADO", cl: "btn-secondary-modal", fn: () => {
+                    atualizarItem(id, 'status', 'Enviado ao CSC');
                     fecharModal();
                 }}
             ]);
         } else {
             const textoCopia = corpoEmail;
             abrirModal("Copiar Dados Produto", textoCopia, [
-                { txt: "COPIAR E MARCAR", cl: "btn-primary-modal", fn: async () => {
-                    navigator.clipboard.writeText(textoCopia).then(async () => {
+                { txt: "COPIAR E MARCAR", cl: "btn-primary-modal", fn: () => {
+                    navigator.clipboard.writeText(textoCopia).then(() => {
                         mostrarSucesso("Mensagem copiada!");
-                        await atualizarItem(id, 'status', 'Enviado ao CSC');
+                        atualizarItem(id, 'status', 'Enviado ao CSC');
                         fecharModal();
                     });
                 }}
@@ -382,11 +417,7 @@ const abrirModal = (t, p, btns) => {
 };
 
 const fecharModal = () => {
-    const modal = document.getElementById('modalApp');
-    if (!modal) return;
-    modal.style.display = 'none';
-    document.getElementById('modalPreview').innerText = '';
-    document.getElementById('modalActions').innerHTML = '';
+    document.getElementById('modalApp').style.display = 'none';
 };
 
 const showLoading = () => {
