@@ -14,7 +14,8 @@ export const deParaFilial = {
     "010035": "GOIANIRA",
     "010057": "ARAGUAINA",
     "010085": "BOM DESPACHO",
-    "010090": "NOVA PONTE"
+    "010090": "NOVA PONTE",
+    "010091": "NOVA PONTE"
 };
 
 export const emails = {

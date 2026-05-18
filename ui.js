@@ -1,7 +1,7 @@
 // ui.js - Funções de interface
 import { fmtMoeda, mostrarErro, mostrarSucesso, parseCSV, parseMoeda, validarValor, validarData } from './utils.js';
 import { salvarItem, atualizarItem, removerItem, obterItem } from './data.js';
-import { listaMeses, emails } from './config.js';
+import { listaMeses, emails, deParaFilial } from './config.js';
 import { login, logout } from './auth.js';
 
 let dadosCarregados = {};
@@ -110,68 +110,144 @@ const handleCSVImport = async (event) => {
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-        const csvText = e.target.result;
-        const dados = parseCSV(csvText);
-        const mesAtual = document.getElementById('mesFiltro').value;
-        const localSelecionado = document.getElementById('filtroLocal').value;
+        try {
+            const csvText = e.target.result;
+            const dados = parseCSV(csvText);
+            const mesAtual = document.getElementById('mesFiltro').value;
 
-        let atualizados = 0;
-        let ignorados = 0;
+            console.log('=== INICIANDO IMPORTAÇÃO CSV ===');
+            console.log(`Total de linhas: ${dados.length}`);
+            console.log(`Mês selecionado: ${mesAtual}`);
+            console.log('Primeiras linhas:', dados.slice(0, 2));
 
-        const itensMes = Object.entries(dadosCarregados)
-            .map(([id, item]) => ({ id, ...item }))
-            .filter(item => item.mes === mesAtual);
+            let processados = 0;
+            let ignorados = 0;
+            let erros = [];
 
-        for (const linha of dados) {
-            const pedido = (linha.Pedido || linha['Nº PC'] || linha['NC PC'] || linha['Numero PC'] || '').trim();
-            const codFor = (linha.CodFornecedor || linha['CodFornecedor'] || linha['Cod. Fornecedor'] || '').trim();
-            const valor = parseMoeda(linha.Valor);
-            const vencimento = (linha.Vencimento || '').trim();
-            const localCsv = linha.Filial ? linha.Filial.trim() : '';
-            const local = localCsv || (localSelecionado !== 'TODOS' ? localSelecionado : '');
-
-            if (!codFor || !pedido) {
-                ignorados++;
-                console.warn('Linha ignorada por falta de código ou pedido:', linha);
-                continue;
-            }
-
-            const registroExistente = itensMes.find(item => {
-                const mesmoCodigo = item.codFor && item.codFor.trim() === codFor;
-                const mesmaFilial = !local || !item.local || item.local.trim() === local;
-                return mesmoCodigo && mesmaFilial;
-            });
-
-            if (!registroExistente) {
-                ignorados++;
-                console.warn('Nenhum registro existente encontrado para atualizar:', linha);
-                continue;
-            }
-
-            const camposParaAtualizar = {};
-            if (pedido) camposParaAtualizar.pedido = pedido;
-            if (!isNaN(valor) && valor > 0) camposParaAtualizar.valor = valor;
-            if (vencimento) camposParaAtualizar.vencimento = vencimento;
-            if (local && !registroExistente.local) camposParaAtualizar.local = local;
-            if (codFor && !registroExistente.codFor) camposParaAtualizar.codFor = codFor;
-
-            if (Object.keys(camposParaAtualizar).length > 0) {
+            for (let idx = 0; idx < dados.length; idx++) {
+                const linha = dados[idx];
+                
                 try {
-                    await atualizarItem(registroExistente.id, camposParaAtualizar);
-                    atualizados++;
-                } catch (error) {
-                    console.error('Erro ao atualizar registro:', registroExistente.id, linha, error);
-                }
-            } else {
-                ignorados++;
-            }
-        }
+                    // Extrair apenas os campos especificados do novo modelo CSV
+                    const codigoFilial = (linha.Filial || '').trim();
+                    const nomeFilial = deParaFilial[codigoFilial];
+                    const pedido = (linha['Nº PC'] || linha['NC PC'] || linha['Numero PC'] || '').trim();
+                    const codFor = (linha['Cod. Fornecedor'] || linha['CodFornecedor'] || '').trim();
+                    const fornecedor = (linha.Fornecedor || '').trim().toUpperCase();
+                    const cc = (linha['C. Custos'] || linha['C.Custos'] || linha['C. de custos'] || '').trim();
+                    const valor = parseMoeda(linha.Valor);
 
-        if (atualizados > 0) {
-            mostrarSucesso(`${atualizados} registros atualizados com sucesso.`);
-        }
-        if (ignorados > 0) {
-            console.warn(`${ignorados} linhas foram ignoradas durante a importação.`);
+                    console.log(`\nLinha ${idx + 1}:`, {
+                        codigoFilial,
+                        nomeFilial,
+                        pedido,
+                        codFor,
+                        fornecedor: fornecedor.substring(0, 30),
+                        cc,
+                        valor,
+                        linhaRaw: linha
+                    });
+
+                    // Validar campos obrigatórios
+                    if (!codigoFilial) {
+                        erros.push(`Linha ${idx + 1}: Filial vazia`);
+                        ignorados++;
+                        continue;
+                    }
+
+                    if (!nomeFilial) {
+                        erros.push(`Linha ${idx + 1}: Filial desconhecida (${codigoFilial}) - Verifique o código`);
+                        ignorados++;
+                        continue;
+                    }
+
+                    if (!pedido) {
+                        erros.push(`Linha ${idx + 1}: Nº PC vazio`);
+                        ignorados++;
+                        continue;
+                    }
+
+                    if (!codFor) {
+                        erros.push(`Linha ${idx + 1}: Cod. Fornecedor vazio (PC: ${pedido})`);
+                        ignorados++;
+                        continue;
+                    }
+
+                    if (!fornecedor) {
+                        erros.push(`Linha ${idx + 1}: Fornecedor vazio (PC: ${pedido})`);
+                        ignorados++;
+                        continue;
+                    }
+
+                    if (!valor || isNaN(valor) || valor <= 0) {
+                        erros.push(`Linha ${idx + 1}: Valor inválido (${linha.Valor}) para PC ${pedido}`);
+                        ignorados++;
+                        continue;
+                    }
+
+                    if (!cc) {
+                        erros.push(`Linha ${idx + 1}: Centro de Custos vazio (PC: ${pedido})`);
+                        ignorados++;
+                        continue;
+                    }
+
+                    // Criar novo item com os campos da importação
+                    const item = {
+                        tipo: "SERVICO",  // Padrão para importação CSV
+                        local: nomeFilial,
+                        pedido: pedido,
+                        codFor: codFor,
+                        fornecedor: fornecedor,
+                        cc: cc,
+                        valor: valor,
+                        vencimento: "",
+                        pagamento: "",
+                        status: "Pendente",
+                        mes: mesAtual,
+                        dataImportacao: new Date().toISOString()
+                    };
+
+                    // Salvar item
+                    await salvarItem(item);
+                    processados++;
+                    console.log(`✓ Linha ${idx + 1} processada com sucesso`);
+
+                } catch (error) {
+                    const msg = `Linha ${idx + 1}: Erro - ${error.message}`;
+                    erros.push(msg);
+                    ignorados++;
+                    console.error(msg, linha, error);
+                }
+            }
+
+            console.log('\n=== RESUMO DA IMPORTAÇÃO ===');
+            console.log(`✓ Processados: ${processados}`);
+            console.log(`✗ Ignorados: ${ignorados}`);
+            console.log(`Erros: `, erros);
+
+            // Exibir resultados
+            let mensagem = `RESUMO DA IMPORTAÇÃO:\n\n✓ ${processados} lançamentos importados com sucesso`;
+            
+            if (ignorados > 0) {
+                mensagem += `\n✗ ${ignorados} linhas ignoradas`;
+                if (erros.length > 0) {
+                    mensagem += '\n\nMotivos dos erros:';
+                    erros.slice(0, 5).forEach(err => mensagem += '\n• ' + err);
+                    if (erros.length > 5) {
+                        mensagem += `\n... e mais ${erros.length - 5} erros (veja console para detalhes completos)`;
+                    }
+                }
+            }
+
+            if (processados > 0) {
+                mostrarSucesso(mensagem);
+            } else if (ignorados > 0) {
+                mostrarErro(mensagem);
+            }
+
+        } catch (error) {
+            console.error('Erro geral na importação:', error);
+            mostrarErro(`Erro ao processar arquivo: ${error.message}`);
         }
     };
     reader.readAsText(file);
@@ -179,27 +255,48 @@ const handleCSVImport = async (event) => {
 
 const handleCleanupImport = async () => {
     const mesAtual = document.getElementById('mesFiltro').value;
-    if (!confirm(`Remover lançamentos CSV importados incorretamente para ${mesAtual}?`)) return;
+    
+    const confirmacao = confirm(
+        `⚠️ ATENÇÃO!\n\nVocê está prestes a DELETAR TODOS os lançamentos de ${mesAtual}.\n\nEsta ação não pode ser desfeita!\n\nDeseja continuar?`
+    );
+    
+    if (!confirmacao) return;
 
+    // Deletar TODOS os itens do mês selecionado
     const itensParaRemover = Object.entries(dadosCarregados)
         .map(([id, item]) => ({ id, ...item }))
-        .filter(item => item.mes === mesAtual && item.status === 'Pendente' && item.tipo === 'SERVICO' && item.codFor && item.fornecedor === item.codFor);
+        .filter(item => item.mes === mesAtual);
+
+    if (itensParaRemover.length === 0) {
+        mostrarErro(`Nenhum lançamento encontrado para ${mesAtual}.`);
+        return;
+    }
 
     let removidos = 0;
+    let erros = 0;
+    
+    console.log(`Iniciando limpeza de ${itensParaRemover.length} registros para ${mesAtual}`);
+    
     for (const item of itensParaRemover) {
         try {
             await removerItem(item.id);
             removidos++;
         } catch (error) {
-            console.error('Erro ao remover item de limpeza:', item.id, error);
+            erros++;
+            console.error('Erro ao remover item:', item.id, error);
         }
     }
 
-    if (removidos > 0) {
-        mostrarSucesso(`${removidos} lançamentos importados incorretamente removidos.`);
-    } else {
-        mostrarErro('Nenhum lançamento CSV errado encontrado para remover.');
+    let mensagem = `✓ ${removidos} lançamentos removidos de ${mesAtual}`;
+    if (erros > 0) {
+        mensagem += `\n⚠️ ${erros} erros durante a limpeza`;
     }
+    
+    console.log(`Limpeza concluída: ${removidos} removidos, ${erros} erros`);
+    mostrarSucesso(mensagem);
+    
+    // Recarregar dados
+    renderizarDados();
 };
 
 const getGrupoExibicao = (item) => {
