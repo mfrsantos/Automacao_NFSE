@@ -1,6 +1,6 @@
 // ui.js - Funções de interface
 import { fmtMoeda, mostrarErro, mostrarSucesso, parseCSV, parseMoeda, validarValor, validarData } from './utils.js';
-import { salvarItem, atualizarItem, removerItem, obterItem } from './data.js';
+import { salvarItem, atualizarItem, removerItem, obterItem, verificarPedidoExistente } from './data.js';
 import { listaMeses, emails, deParaFilial } from './config.js';
 import { login, logout } from './auth.js';
 
@@ -194,9 +194,8 @@ const handleCSVImport = async (event) => {
                     }
 
                     // ===== VERIFICAÇÃO DE DUPLICAÇÃO =====
-                    // Verificar se o pedido já existe nos dados carregados
-                    const pedidoExistente = Object.values(dadosCarregados)
-                        .find(item => item.pedido === pedido && item.mes === mesAtual);
+                    // Verificar se o pedido já existe no Firebase
+                    const pedidoExistente = await verificarPedidoExistente(pedido, mesAtual);
                     
                     if (pedidoExistente) {
                         // Se o pedido existe, verificar se é do mesmo fornecedor

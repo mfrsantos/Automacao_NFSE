@@ -50,3 +50,23 @@ export const obterItem = async (id) => {
         throw new Error('Erro ao obter item');
     }
 };
+
+export const verificarPedidoExistente = async (pedido, mes) => {
+    try {
+        const snap = await get(contasRef);
+        const dados = snap.val();
+        
+        if (!dados) return null;
+        
+        // Procurar por um item com o mesmo pedido e mês
+        for (const [id, item] of Object.entries(dados)) {
+            if (item.pedido === pedido && item.mes === mes) {
+                return item; // Retorna o item encontrado
+            }
+        }
+        
+        return null; // Nenhum item encontrado
+    } catch (error) {
+        throw new Error('Erro ao verificar pedido existente');
+    }
+};
