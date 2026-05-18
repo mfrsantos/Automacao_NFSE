@@ -123,6 +123,8 @@ const handleCSVImport = async (event) => {
             let processados = 0;
             let ignorados = 0;
             let erros = [];
+            let pedidosProcessados = {}; // Rastrear pedidos nesta importação
+            let pedidosDuplicados = []; // Rastrear duplicatas
 
             for (let idx = 0; idx < dados.length; idx++) {
                 const linha = dados[idx];
@@ -191,6 +193,45 @@ const handleCSVImport = async (event) => {
                         continue;
                     }
 
+                    // ===== VERIFICAÇÃO DE DUPLICAÇÃO =====
+                    // Verificar se o pedido já existe nos dados carregados
+                    const pedidoExistente = Object.values(dadosCarregados)
+                        .find(item => item.pedido === pedido && item.mes === mesAtual);
+                    
+                    if (pedidoExistente) {
+                        // Se o pedido existe, verificar se é do mesmo fornecedor
+                        if (pedidoExistente.fornecedor !== fornecedor) {
+                            erros.push(`Linha ${idx + 1}: Pedido ${pedido} já existe com fornecedor diferente (${pedidoExistente.fornecedor}) - não é permitido múltiplos fornecedores para o mesmo pedido`);
+                            ignorados++;
+                            continue;
+                        } else {
+                            // Mesmo pedido, mesmo fornecedor = duplicata
+                            erros.push(`Linha ${idx + 1}: Pedido ${pedido} do fornecedor ${fornecedor} já foi importado - duplicata ignorada`);
+                            ignorados++;
+                            pedidosDuplicados.push({ pedido, fornecedor });
+                            continue;
+                        }
+                    }
+
+                    // Verificar se o pedido já foi processado nesta importação
+                    if (pedidosProcessados[pedido]) {
+                        // Se foi processado, verificar se é do mesmo fornecedor
+                        if (pedidosProcessados[pedido] !== fornecedor) {
+                            erros.push(`Linha ${idx + 1}: Pedido ${pedido} aparece múltiplas vezes neste arquivo com fornecedores diferentes - não é permitido`);
+                            ignorados++;
+                            continue;
+                        } else {
+                            // Mesmo pedido, mesmo fornecedor = duplicata neste arquivo
+                            erros.push(`Linha ${idx + 1}: Pedido ${pedido} aparece múltiplas vezes neste arquivo - duplicata ignorada`);
+                            ignorados++;
+                            pedidosDuplicados.push({ pedido, fornecedor });
+                            continue;
+                        }
+                    }
+
+                    // Registrar o pedido como processado
+                    pedidosProcessados[pedido] = fornecedor;
+
                     // Criar novo item com os campos da importação
                     const item = {
                         tipo: "SERVICO",  // Padrão para importação CSV
@@ -223,11 +264,16 @@ const handleCSVImport = async (event) => {
             console.log('\n=== RESUMO DA IMPORTAÇÃO ===');
             console.log(`✓ Processados: ${processados}`);
             console.log(`✗ Ignorados: ${ignorados}`);
+            console.log(`Duplicatas detectadas: ${pedidosDuplicados.length}`);
             console.log(`Erros: `, erros);
 
             // Exibir resultados
             let mensagem = `RESUMO DA IMPORTAÇÃO:\n\n✓ ${processados} lançamentos importados com sucesso`;
             
+            if (pedidosDuplicados.length > 0) {
+                mensagem += `\n⚠️ ${pedidosDuplicados.length} pedidos duplicados foram ignorados (já existentes)`;
+            }
+
             if (ignorados > 0) {
                 mensagem += `\n✗ ${ignorados} linhas ignoradas`;
                 if (erros.length > 0) {
