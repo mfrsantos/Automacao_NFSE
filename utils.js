@@ -31,10 +31,15 @@ export const parseMoeda = (s) => {
 };
 
 export const validarData = (dataStr) => {
-    const regex = /^\d{2}\/\d{2}\/\d{4}$/;
-    if (!regex.test(dataStr)) return false;
-    const [dia, mes, ano] = dataStr.split('/').map(Number);
+    const regex = /^(\d{2})\/(\d{2})(?:\/(\d{4}))?$/;
+    const match = regex.exec(dataStr);
+    if (!match) return false;
+
+    const dia = Number(match[1]);
+    const mes = Number(match[2]);
+    const ano = match[3] ? Number(match[3]) : new Date().getFullYear();
     const data = new Date(ano, mes - 1, dia);
+
     return data.getFullYear() === ano && data.getMonth() === mes - 1 && data.getDate() === dia;
 };
 
@@ -44,11 +49,57 @@ export const validarValor = (valor) => {
 };
 
 export const mostrarErro = (mensagem) => {
-    alert(`Erro: ${mensagem}`);
+    mostrarNotificacao(mensagem, 'erro', 'ERRO');
 };
 
 export const mostrarSucesso = (mensagem) => {
-    alert(mensagem);
+    mostrarNotificacao(mensagem, 'sucesso', 'SUCESSO');
+};
+
+export const mostrarAviso = (mensagem) => {
+    mostrarNotificacao(mensagem, 'aviso', 'AVISO');
+};
+
+export const mostrarNotificacao = (mensagem, tipo = 'sucesso', titulo = '', duracao = 8000) => {
+    const container = document.getElementById('notificacaoContainer');
+    if (!container) return;
+
+    const notificacao = document.createElement('div');
+    notificacao.className = `notificacao notificacao-${tipo}`;
+    
+    let icone = '✓';
+    if (tipo === 'erro') icone = '✕';
+    if (tipo === 'aviso') icone = '⚠';
+
+    const tituloHtml = titulo ? `<div class="notificacao-titulo">${titulo}</div>` : '';
+    
+    notificacao.innerHTML = `
+        <div class="notificacao-icone">${icone}</div>
+        <div class="notificacao-conteudo">
+            ${tituloHtml}
+            <div class="notificacao-mensagem">${mensagem}</div>
+        </div>
+        <button class="notificacao-fechar">×</button>
+    `;
+
+    container.appendChild(notificacao);
+
+    notificacao.querySelector('.notificacao-fechar').addEventListener('click', () => {
+        fecharNotificacao(notificacao);
+    });
+
+    if (duracao > 0) {
+        setTimeout(() => {
+            fecharNotificacao(notificacao);
+        }, duracao);
+    }
+};
+
+const fecharNotificacao = (notificacao) => {
+    notificacao.classList.add('saindo');
+    setTimeout(() => {
+        notificacao.remove();
+    }, 300);
 };
 
 export const parseCSV = (csvText) => {
