@@ -21,6 +21,8 @@
         <div id="loadingIndicator" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000;">
             <div class="loading"></div> Carregando...
         </div>
+        <div id="notificacaoContainer"></div>
+        
         <header>
             <div class="header-top">
                 <h1>ERP <span class="accent-green">VACCINAR</span> <span class="accent-blue">TI</span></h1>
@@ -94,16 +96,15 @@
                 <div class="tabela-header-row">
                     <h2 class="accent-blue"><i class="fas fa-tools"></i> Notas de Serviço</h2>
                     <div class="header-actions">
-                        <button id="btnReplicar" class="btn-replicar"><i class="fas fa-copy"></i> Replicar p/ Próximo Mês</button>
                         <button id="btnAprovacao" class="btn-aprovacao"><i class="fas fa-user-check"></i> Enviar p/ Aprovação (> 10k)</button>
-                <input type="text" id="inputBusca" placeholder="Pesquisar..." aria-label="Buscar por pedido, fornecedor ou código">
+                        <input type="text" id="inputBusca" placeholder="Pesquisar..." aria-label="Buscar por pedido, fornecedor ou código">
                     </div>
                 </div>
                 <div class="table-scroll">
                     <table>
                         <thead>
                             <tr>
-                                <th>Filial</th><th>Nº PC</th><th>Cód.</th><th>Fornecedor</th><th>C.C</th><th class="col-valor">Valor</th><th>Venc.</th><th>Pagto</th><th>Status</th><th>Ações</th>
+                                <th>Filial</th><th class="col-pedido">Nº PC</th><th class="col-codfor">Cód.</th><th>Fornecedor</th><th class="col-cc">C.C</th><th class="col-valor">Valor</th><th>Venc.</th><th>Pagto</th><th>Status</th><th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tabelaServico"></tbody>
@@ -117,7 +118,7 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Filial</th><th>Nº PC</th><th>Cód.</th><th>Fornecedor</th><th>C.C</th><th class="col-valor">Valor</th><th>Venc.</th><th>Pagto</th><th>Status</th><th>Ações</th>
+                                <th>Filial</th><th class="col-pedido">Nº PC</th><th class="col-codfor">Cód.</th><th>Fornecedor</th><th class="col-cc">C.C</th><th class="col-valor">Valor</th><th class="col-venc">Venc.</th><th>Pagto</th><th>Status</th><th>Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tabelaProduto"></tbody>

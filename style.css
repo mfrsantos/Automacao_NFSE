@@ -45,12 +45,21 @@ select, .btn-import { background: var(--bg-input); color: #fff; border: 1px soli
 
 /* Tabelas */
 .container-tabela { background: var(--bg-card); margin: 0 30px 30px; padding: 20px; border-radius: 10px; }
-.tabela-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.header-actions { display: flex; align-items: center; gap: 10px; }
+.tabela-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; }
+.header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.header-actions input#inputBusca { background: var(--bg-input); color: #fff; border: 1px solid #334155; padding: 10px 14px; border-radius: 8px; min-width: 200px; width: 250px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+.header-actions input#inputBusca:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1); }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
 th { text-align: left; padding: 12px; color: var(--text-dim); border-bottom: 2px solid #2d3748; }
 td { padding: 10px 12px; border-bottom: 1px solid #2d3748; }
+
+/* Compact column widths */
+th.col-pedido, td.col-pedido { width: 90px; max-width: 90px; }
+th.col-codfor, td.col-codfor { width: 90px; max-width: 90px; }
+th.col-cc, td.col-cc { width: 70px; max-width: 70px; }
+th.col-valor, td.col-valor { width: 100px; max-width: 100px; }
+th.col-venc, td.col-venc { width: 90px; max-width: 90px; }
 
 /* Inputs dentro da tabela */
 .input-tabela { background: transparent; border: none; color: #fff; width: 100%; font-size: 13px; border-bottom: 1px dashed #334155; padding: 4px; }
@@ -77,15 +86,36 @@ td { padding: 10px 12px; border-bottom: 1px solid #2d3748; }
 .status-enviado { background: rgba(46, 204, 113, 0.2); color: #55efc4; }
 
 /* Botões Especiais */
-.btn-replicar, .btn-aprovacao { background: transparent; color: var(--primary-blue); border: 1px solid var(--primary-blue); padding: 7px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; font-weight: bold; }
-.btn-replicar:hover, .btn-aprovacao:hover { background: var(--primary-blue); color: #fff; }
+.btn-replicar, .btn-aprovacao { background: var(--primary-blue); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: filter 0.2s ease, transform 0.2s ease; }
+.btn-replicar:hover, .btn-aprovacao:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn-replicar i, .btn-aprovacao i { font-size: 0.95rem; }
 
 /* Modal */
 .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 3000; }
-.modal-content { background: var(--bg-card); padding: 30px; border-radius: 12px; width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-.preview-box { background: #000; padding: 15px; border-radius: 8px; color: #2ecc71; margin-bottom: 20px; white-space: pre-wrap; font-family: monospace; font-size: 13px; line-height: 1.4; border: 1px solid #333; }
-.modal-btn { padding: 12px; width: 100%; margin-bottom: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer; }
+.modal-content { background: var(--bg-card); padding: 30px; border-radius: 12px; width: min(560px, calc(100% - 40px)); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+.modal-content h3 { margin-top: 0; font-size: 1.3rem; color: var(--text-main); }
+.modal-actions-container { display: grid; gap: 10px; margin-top: 20px; }
+.preview-box { background: #0e1722; padding: 18px; border-radius: 10px; color: #d7e6ff; margin-bottom: 20px; white-space: pre-wrap; font-family: Inter, sans-serif; font-size: 14px; line-height: 1.6; border: 1px solid #223047; }
+.modal-btn { padding: 14px 18px; width: 100%; margin-bottom: 10px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: background 0.2s ease, transform 0.2s ease; }
+.modal-btn:hover { transform: translateY(-1px); }
 .btn-primary-modal { background: var(--primary-blue); color: #fff; }
+.btn-secondary-modal { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid rgba(255,255,255,0.12); }
 /* Loading */
 .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid var(--primary-blue); border-radius: 50%; animation: spin 1s linear infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Notificações */
+#notificacaoContainer { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 4000; display: flex; flex-direction: column; gap: 10px; max-width: 520px; width: min(95vw, 520px); align-items: center; pointer-events: none; }
+.notificacao { padding: 18px 22px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.35); display: flex; gap: 14px; align-items: flex-start; animation: slideIn 0.25s ease-out; border-left: 4px solid; font-size: 14px; line-height: 1.5; max-height: 240px; overflow-y: auto; width: 100%; pointer-events: auto; }
+@keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes slideOut { from { transform: translateY(0); opacity: 1; } to { transform: translateY(20px); opacity: 0; } }
+.notificacao.saindo { animation: slideOut 0.25s ease-in; }
+.notificacao-sucesso { background: rgba(46, 204, 113, 0.18); border-left-color: var(--primary-green); color: #d4f7e1; }
+.notificacao-erro { background: rgba(231, 76, 60, 0.18); border-left-color: var(--danger); color: #ffb3b3; }
+.notificacao-aviso { background: rgba(255, 195, 0, 0.18); border-left-color: #ffc300; color: #fff2b2; }
+.notificacao-icone { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+.notificacao-conteudo { flex: 1; }
+.notificacao-titulo { font-weight: 700; margin-bottom: 6px; }
+.notificacao-mensagem { font-size: 13px; opacity: 0.95; white-space: pre-wrap; word-break: break-word; }
+.notificacao-fechar { background: none; border: none; color: inherit; cursor: pointer; font-size: 18px; opacity: 0.7; padding: 0; margin-left: auto; flex-shrink: 0; }
+.notificacao-fechar:hover { opacity: 1; }

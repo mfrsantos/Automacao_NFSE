@@ -1,5 +1,5 @@
 // ui.js - Funções de interface
-import { fmtMoeda, mostrarErro, mostrarSucesso, parseCSV, parseMoeda, validarValor, validarData } from './utils.js';
+import { fmtMoeda, mostrarErro, mostrarSucesso, mostrarAviso, parseCSV, parseMoeda, validarValor, validarData } from './utils.js';
 import { salvarItem, atualizarItem, removerItem, obterItem, verificarPedidoExistente } from './data.js';
 import { listaMeses, emails, deParaFilial } from './config.js';
 import { login, logout } from './auth.js';
@@ -90,7 +90,7 @@ const handleSalvarManual = async () => {
         return;
     }
     if (item.vencimento && !validarData(item.vencimento)) {
-        mostrarErro('Data de vencimento inválida (formato DD/MM/AAAA)');
+        mostrarErro('Data de vencimento inválida (formato DD/MM)');
         return;
     }
 
@@ -287,12 +287,20 @@ const handleCSVImport = async (event) => {
             if (processados > 0) {
                 mostrarSucesso(mensagem);
             } else if (ignorados > 0) {
-                mostrarErro(mensagem);
+                mostrarAviso(mensagem);
+            } else {
+                mostrarSucesso(mensagem);
             }
+
+            // Limpar o input de arquivo para permitir reimportar o mesmo arquivo sem recarregar a página
+            const csvInput = document.getElementById('csvInput');
+            if (csvInput) csvInput.value = '';
 
         } catch (error) {
             console.error('Erro geral na importação:', error);
             mostrarErro(`Erro ao processar arquivo: ${error.message}`);
+            const csvInput = document.getElementById('csvInput');
+            if (csvInput) csvInput.value = '';
         }
     };
     reader.readAsText(file);
@@ -300,48 +308,50 @@ const handleCSVImport = async (event) => {
 
 const handleCleanupImport = async () => {
     const mesAtual = document.getElementById('mesFiltro').value;
-    
-    const confirmacao = confirm(
-        `⚠️ ATENÇÃO!\n\nVocê está prestes a DELETAR TODOS os lançamentos de ${mesAtual}.\n\nEsta ação não pode ser desfeita!\n\nDeseja continuar?`
+
+    abrirConfirmacao(
+        'ATENÇÃO',
+        `Você está prestes a DELETAR TODOS os lançamentos de ${mesAtual}.\n\nEsta ação não pode ser desfeita!`,
+        async () => {
+            // Deletar TODOS os itens do mês selecionado
+            const itensParaRemover = Object.entries(dadosCarregados)
+                .map(([id, item]) => ({ id, ...item }))
+                .filter(item => item.mes === mesAtual);
+
+            if (itensParaRemover.length === 0) {
+                mostrarErro(`Nenhum lançamento encontrado para ${mesAtual}.`);
+                return;
+            }
+
+            let removidos = 0;
+            let erros = 0;
+            
+            console.log(`Iniciando limpeza de ${itensParaRemover.length} registros para ${mesAtual}`);
+            
+            for (const item of itensParaRemover) {
+                try {
+                    await removerItem(item.id);
+                    removidos++;
+                } catch (error) {
+                    erros++;
+                    console.error('Erro ao remover item:', item.id, error);
+                }
+            }
+
+            let mensagem = `✓ ${removidos} lançamentos removidos de ${mesAtual}`;
+            if (erros > 0) {
+                mensagem += `\n⚠️ ${erros} erros durante a limpeza`;
+            }
+            
+            console.log(`Limpeza concluída: ${removidos} removidos, ${erros} erros`);
+            mostrarSucesso(mensagem);
+            
+            // Recarregar dados
+            renderizarDados();
+        },
+        'EXCLUIR',
+        'CANCELAR'
     );
-    
-    if (!confirmacao) return;
-
-    // Deletar TODOS os itens do mês selecionado
-    const itensParaRemover = Object.entries(dadosCarregados)
-        .map(([id, item]) => ({ id, ...item }))
-        .filter(item => item.mes === mesAtual);
-
-    if (itensParaRemover.length === 0) {
-        mostrarErro(`Nenhum lançamento encontrado para ${mesAtual}.`);
-        return;
-    }
-
-    let removidos = 0;
-    let erros = 0;
-    
-    console.log(`Iniciando limpeza de ${itensParaRemover.length} registros para ${mesAtual}`);
-    
-    for (const item of itensParaRemover) {
-        try {
-            await removerItem(item.id);
-            removidos++;
-        } catch (error) {
-            erros++;
-            console.error('Erro ao remover item:', item.id, error);
-        }
-    }
-
-    let mensagem = `✓ ${removidos} lançamentos removidos de ${mesAtual}`;
-    if (erros > 0) {
-        mensagem += `\n⚠️ ${erros} erros durante a limpeza`;
-    }
-    
-    console.log(`Limpeza concluída: ${removidos} removidos, ${erros} erros`);
-    mostrarSucesso(mensagem);
-    
-    // Recarregar dados
-    renderizarDados();
 };
 
 const getGrupoExibicao = (item) => {
@@ -415,17 +425,17 @@ export const renderizarDados = () => {
             tr.classList.add(`row-grupo-${grupo}`);
             if (isEnv) tr.classList.add('row-enviada');
 
-            const tdPedido = `<td><input type="text" value="${item.pedido || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'pedido', this.value)"></td>`;
+            const tdPedido = `<td class="col-pedido"><input type="text" value="${item.pedido || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'pedido', this.value)"></td>`;
             const tdValor = `<td class="col-valor">R$ <input type="text" value="${fmtMoeda(item.valor)}" class="input-tabela col-valor" onblur="atualizarCampo('${item.id}', 'valor', this.value)"></td>`;
 
             const htmlBase = `
                 <td>${item.local}</td>
                 ${tdPedido}
-                <td>${item.codFor || ''}</td>
+                <td class="col-codfor">${item.codFor || ''}</td>
                 <td>${item.fornecedor}</td>
-                <td>${item.cc || ''}</td>
+                <td class="col-cc">${item.cc || ''}</td>
                 ${tdValor}
-                <td><input type="text" value="${item.vencimento || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'vencimento', this.value)"></td>
+                <td class="col-venc"><input type="text" value="${item.vencimento || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'vencimento', this.value)"></td>
                 <td>${item.pagamento}</td>
                 <td><span class="status-badge ${isEnv ? 'status-enviado' : 'status-pendente'}">${item.status}</span></td>`;
 
@@ -449,22 +459,7 @@ export const renderizarDados = () => {
     document.getElementById('countPendente').innerText = pCount + " notas";
     document.getElementById('countEnviado').innerText = eCount + " notas";
 
-    // Botão replicar
-    document.getElementById('btnReplicar').onclick = async () => {
-        const idx = listaMeses.indexOf(mesAtu);
-        if (idx === 11) return;
-        const proxMes = listaMeses[idx + 1];
-        const servicos = itens.filter(i => i.tipo === "SERVICO");
-        if (confirm(`Replicar ${servicos.length} itens para ${proxMes}?`)) {
-            for (const s of servicos) {
-                await salvarItem({
-                    tipo: "SERVICO", local: s.local, fornecedor: s.fornecedor, codFor: s.codFor || "",
-                    cc: s.cc || "", pedido: "", valor: 0, vencimento: "", pagamento: s.pagamento, status: "Pendente", mes: proxMes
-                });
-            }
-            mostrarSucesso("Itens replicados!");
-        }
-    };
+
 
     // Botão aprovação
     document.getElementById('btnAprovacao').onclick = () => {
@@ -532,14 +527,20 @@ window.abrirModalItem = async (id) => {
 };
 
 window.removerItemUI = async (id) => {
-    if (confirm("Excluir?")) {
-        try {
-            await removerItem(id);
-            mostrarSucesso("Item removido");
-        } catch (error) {
-            mostrarErro(error.message);
-        }
-    }
+    abrirConfirmacao(
+        'EXCLUIR ITEM',
+        'Deseja realmente excluir este item?',
+        async () => {
+            try {
+                await removerItem(id);
+                mostrarSucesso("Item removido");
+            } catch (error) {
+                mostrarErro(error.message);
+            }
+        },
+        'EXCLUIR',
+        'CANCELAR'
+    );
 };
 
 const gerarTextoEmail = (c) => {
@@ -554,12 +555,21 @@ const abrirModal = (t, p, btns) => {
     btns.forEach(b => {
         const el = document.createElement('button'); el.innerText = b.txt; el.className = `modal-btn ${b.cl}`; el.onclick = b.fn; c.appendChild(el);
     });
-    const bc = document.createElement('button'); bc.innerText = "CANCELAR"; bc.className = "modal-btn"; bc.onclick = fecharModal; c.appendChild(bc);
+    const bc = document.createElement('button'); bc.innerText = "CANCELAR"; bc.className = "modal-btn btn-secondary-modal"; bc.onclick = fecharModal; c.appendChild(bc);
     document.getElementById('modalApp').style.display = 'flex';
 };
 
 const fecharModal = () => {
     document.getElementById('modalApp').style.display = 'none';
+};
+
+const abrirConfirmacao = (titulo, mensagem, fnConfirmar, textoConfirmar = 'OK', textoCancelar = 'CANCELAR') => {
+    abrirModal(titulo, mensagem, [
+        { txt: textoConfirmar, cl: 'btn-primary-modal', fn: async () => {
+            await fnConfirmar();
+            fecharModal();
+        }}
+    ]);
 };
 
 const showLoading = () => {
