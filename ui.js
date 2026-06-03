@@ -241,7 +241,7 @@ const handleCSVImport = async (event) => {
                         cc: cc,
                         valor: valor,
                         vencimento: "",
-                        pagamento: "",
+                        pagamento: "BOLETO",
                         status: "Pendente",
                         mes: mesAtual,
                         dataImportacao: new Date().toISOString()
@@ -428,6 +428,13 @@ export const renderizarDados = () => {
             const tdPedido = `<td class="col-pedido"><input type="text" value="${item.pedido || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'pedido', this.value)"></td>`;
             const tdValor = `<td class="col-valor">R$ <input type="text" value="${fmtMoeda(item.valor)}" class="input-tabela col-valor" onblur="atualizarCampo('${item.id}', 'valor', this.value)"></td>`;
 
+            const tdPagamento = `<td>
+                    <select class="input-tabela" onchange="atualizarCampo('${item.id}', 'pagamento', this.value)">
+                        <option value="BOLETO" ${item.pagamento === 'DEPOSITO' ? '' : 'selected'}>Boleto</option>
+                        <option value="DEPOSITO" ${item.pagamento === 'DEPOSITO' ? 'selected' : ''}>Deposito</option>
+                    </select>
+                </td>`;
+
             const htmlBase = `
                 <td>${item.local}</td>
                 ${tdPedido}
@@ -436,7 +443,7 @@ export const renderizarDados = () => {
                 <td class="col-cc">${item.cc || ''}</td>
                 ${tdValor}
                 <td class="col-venc"><input type="text" value="${item.vencimento || ''}" class="input-tabela" onblur="atualizarCampo('${item.id}', 'vencimento', this.value)"></td>
-                <td>${item.pagamento}</td>
+                ${tdPagamento}
                 <td><span class="status-badge ${isEnv ? 'status-enviado' : 'status-pendente'}">${item.status}</span></td>`;
 
             const acoes = `<td>
