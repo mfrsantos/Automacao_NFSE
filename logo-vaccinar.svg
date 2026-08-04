@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">Logomarca Vaccinar Nutrição Animal</title>
+  <desc id="desc">Fundo vermelho com símbolo branco e textos Vaccinar e Nutrição Animal.</desc>
+
+  <rect x="10" y="10" width="940" height="340" rx="36" fill="#ed1c24"/>
+
+  <path d="M114 80 C162 62, 206 74, 206 120 C206 158, 184 224, 156 299 C149 317, 144 332, 143 342 L92 342 C96 329, 101 315, 107 296 C145 191, 166 137, 166 116 C166 89, 140 85, 105 98 Z" fill="#ffffff"/>
+  <path d="M143 304 C235 170, 332 72, 470 10 L530 10 C376 129, 249 238, 152 333 Z" fill="#ffffff"/>
+
+  <text x="272" y="235" font-family="Arial, Helvetica, sans-serif" font-size="132" font-weight="500" fill="#ffffff" letter-spacing="1">accinar</text>
+  <text x="336" y="304" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700" fill="#ffffff" letter-spacing="6">NUTRIÇÃO ANIMAL</text>
+</svg>

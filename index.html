@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Vaccinar - TI</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div id="loginOverlay" class="overlay">
+        <div class="login-box">
+            <div class="brand-login">
+                <img src="logo-vaccinar.svg" alt="Logomarca Vaccinar">
+            </div>
+            <h2>ERP VACCINAR TI</h2>
+            <input type="email" id="loginEmail" placeholder="E-mail" aria-label="E-mail para login">
+            <input type="password" id="loginPass" placeholder="Senha" aria-label="Senha para login">
+            <button id="btnLogin">ACESSAR SISTEMA</button>
+        </div>
+    </div>
+
+    <div id="appContent" style="display:none;">
+        <div id="loadingIndicator" style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:1000;">
+            <div class="loading"></div> Carregando...
+        </div>
+        <div id="notificacaoContainer"></div>
+        
+        <header>
+            <div class="header-top">
+                <div class="brand-header">
+                    <img src="logo-vaccinar.svg" alt="Logomarca Vaccinar">
+                    <h1>ERP <span class="accent-green">VACCINAR</span> <span class="accent-blue">TI</span></h1>
+                </div>
+                <div class="header-controls">
+                    <button id="btnThemeToggle" class="btn-theme-toggle" type="button" aria-label="Alternar modo escuro">
+                        <i class="fas fa-moon"></i> Modo escuro
+                    </button>
+                    <button id="btnLogout" class="btn-logout">Sair</button>
+                </div>
+            </div>
+            <div class="filtros-topo">
+                <select id="mesFiltro">
+                    <option value="JANEIRO">JANEIRO</option><option value="FEVEREIRO">FEVEREIRO</option>
+                    <option value="MARÇO">MARÇO</option><option value="ABRIL" selected>ABRIL</option>
+                    <option value="MAIO">MAIO</option><option value="JUNHO">JUNHO</option>
+                    <option value="JULHO">JULHO</option><option value="AGOSTO">AGOSTO</option>
+                    <option value="SETEMBRO">SETEMBRO</option><option value="OUTUBRO">OUTUBRO</option>
+                    <option value="NOVEMBRO">NOVEMBRO</option><option value="DEZEMBRO">DEZEMBRO</option>
+                </select>
+                <select id="filtroLocal">
+                    <option value="TODOS">TODAS FILIAIS</option>
+                    <option value="MATRIZ">MATRIZ</option><option value="ARAGUAINA">ARAGUAINA</option>
+                    <option value="GOIANIRA">GOIANIRA</option><option value="BOM DESPACHO">BOM DESPACHO</option>
+                    <option value="TOLEDO">TOLEDO</option><option value="PINHAIS">PINHAIS</option>
+                    <option value="NOVA PONTE">NOVA PONTE</option>
+                </select>
+                <button onclick="document.getElementById('csvInput').click()" class="btn-import">
+                    <i class="fas fa-file-import"></i> Importar CSV
+                </button>
+                <button id="btnCleanup" class="btn-import btn-cleanup">
+                    <i class="fas fa-trash-alt"></i> Limpar importação
+                </button>
+                <input type="file" id="csvInput" accept=".csv" style="display:none;">
+            </div>
+        </header>
+
+        <main>
+            <div class="cards-resumo">
+                <div class="card card-pendente">
+                    <h3>Pendente</h3>
+                    <p id="totalPendente">R$ 0,00</p>
+                    <small id="countPendente">0 notas</small>
+                </div>
+                <div class="card card-enviado">
+                    <h3>Enviado ao CSC</h3>
+                    <p id="totalEnviado">R$ 0,00</p>
+                    <small id="countEnviado">0 notas</small>
+                </div>
+            </div>
+
+            <section class="manual-entry">
+                <h3><i class="fas fa-plus-circle"></i> Novo Lançamento</h3>
+                <div class="form-grid">
+                    <select id="mTipo"><option value="SERVICO">SERVIÇO</option><option value="PRODUTO">PRODUTO</option></select>
+                    <select id="mLocal">
+                        <option value="MATRIZ">MATRIZ</option><option value="ARAGUAINA">ARAGUAINA</option>
+                        <option value="GOIANIRA">GOIANIRA</option><option value="BOM DESPACHO">BOM DESPACHO</option>
+                        <option value="TOLEDO">TOLEDO</option><option value="PINHAIS">PINHAIS</option>
+                        <option value="NOVA PONTE">NOVA PONTE</option>
+                    </select>
+                    <input type="text" id="mPedido" placeholder="Nº Pedido">
+                    <input type="text" id="mCodFor" placeholder="Cód. Forn.">
+                    <input type="text" id="mFornecedor" placeholder="Fornecedor">
+                    <input type="text" id="mCC" placeholder="C/C">
+                    <input type="text" id="mValor" placeholder="Valor (0,00)">
+                    <input type="text" id="mVenc" placeholder="Venc. (DD/MM)">
+                    <select id="mPagamento">
+                        <option value="BOLETO">BOLETO</option>
+                        <option value="DEPOSITO">DEPÓSITO</option>
+                    </select>
+                    <button id="btnSalvarManual" class="btn-acao-main">SALVAR</button>
+                </div>
+            </section>
+
+            <div class="container-tabela">
+                <div class="tabela-header-row">
+                    <h2 class="accent-blue"><i class="fas fa-tools"></i> Notas de Serviço</h2>
+                    <div class="header-actions">
+                        <button id="btnAprovacao" class="btn-aprovacao"><i class="fas fa-user-check"></i> Enviar p/ Aprovação (> 10k)</button>
+                        <input type="text" id="inputBusca" placeholder="Pesquisar..." aria-label="Buscar por pedido, fornecedor ou código">
+                    </div>
+                </div>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Filial</th><th class="col-pedido">Nº PC</th><th class="col-codfor">Cód.</th><th>Fornecedor</th><th class="col-cc">C.C</th><th class="col-valor">Valor</th><th>Venc.</th><th>Pagto</th><th>Status</th><th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaServico"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="container-tabela">
+                <h2 class="accent-green"><i class="fas fa-shopping-cart"></i> Notas de Produto</h2>
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Filial</th><th class="col-pedido">Nº PC</th><th class="col-codfor">Cód.</th><th>Fornecedor</th><th class="col-cc">C.C</th><th class="col-valor">Valor</th><th class="col-venc">Venc.</th><th>Pagto</th><th>Status</th><th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaProduto"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="modalApp" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Tratamento de Nota</h3>
+            <div id="modalPreview" class="preview-box"></div>
+            <div id="modalActions" class="modal-actions-container"></div>
+        </div>
+    </div>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
