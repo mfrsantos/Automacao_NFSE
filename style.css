@@ -33,7 +33,8 @@ body { font-family: 'Inter', sans-serif; background: var(--bg-main); margin: 0; 
 .overlay { position: fixed; inset: 0; background: var(--overlay-color); display: flex; align-items: center; justify-content: center; z-index: 2000; }
 .login-box { background: var(--bg-card); padding: 40px; border-radius: 12px; border-top: 5px solid var(--primary-blue); text-align: center; box-shadow: 0 18px 40px rgba(18, 24, 33, 0.22); }
 .login-box h2 { margin-bottom: 20px; font-size: 1.2rem; }
-.login-box input { background: #ffffff; border: 1px solid var(--border-main); color: var(--text-main); padding: 12px; margin-bottom: 10px; width: 100%; box-sizing: border-box; border-radius: 4px; }
+.login-box input { background: var(--bg-input); border: 1px solid var(--border-main); color: var(--text-main); padding: 12px; margin-bottom: 10px; width: 100%; box-sizing: border-box; border-radius: 4px; caret-color: var(--text-main); }
+.login-box input:focus { background: var(--surface-muted-strong); color: var(--text-main); outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(229, 40, 32, 0.12); }
 .login-box button { background: var(--primary-blue); color: white; border: none; padding: 12px; width: 100%; cursor: pointer; font-weight: bold; border-radius: 4px; }
 
 .brand-login {
@@ -78,6 +79,7 @@ header { background: var(--bg-card); padding: 15px 30px; border-bottom: 2px soli
 /* Filtros */
 .filtros-topo { display: flex; gap: 10px; margin-top: 15px; }
 select { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-main); padding: 8px 12px; border-radius: 6px; cursor: pointer; }
+select:focus { background: var(--surface-muted-strong); color: var(--text-main); outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(229, 40, 32, 0.12); }
 .btn-import { background: var(--primary-blue); color: #fff; border: 1px solid var(--primary-blue); padding: 8px 12px; border-radius: 6px; cursor: pointer; }
 
 /* Cards */
@@ -91,7 +93,8 @@ select { background: var(--bg-input); color: var(--text-main); border: 1px solid
 /* Formulário */
 .manual-entry { background: var(--bg-card); margin: 0 30px 20px; padding: 20px; border-radius: 10px; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
-.form-grid input, .form-grid select { background: var(--bg-input); border: 1px solid var(--border-main); color: var(--text-main); padding: 10px; border-radius: 4px; }
+.form-grid input, .form-grid select { background: var(--bg-input); border: 1px solid var(--border-main); color: var(--text-main); padding: 10px; border-radius: 4px; caret-color: var(--text-main); }
+.form-grid input:focus, .form-grid select:focus { background: var(--surface-muted-strong); color: var(--text-main); outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(229, 40, 32, 0.12); }
 .btn-acao-main { background: var(--primary-blue); color: #fff; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; }
 
 /* Tabelas */
@@ -100,6 +103,7 @@ select { background: var(--bg-input); color: var(--text-main); border: 1px solid
 .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
 .header-actions input#inputBusca { background: var(--bg-input); color: var(--text-main); border: 1px solid var(--border-main); padding: 10px 14px; border-radius: 8px; min-width: 200px; width: 250px; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
 .header-actions input#inputBusca:focus { outline: none; border-color: var(--primary-blue); box-shadow: 0 0 0 3px rgba(229, 40, 32, 0.12); }
+.header-actions input#inputBusca::selection, .login-box input::selection, .form-grid input::selection, .input-tabela::selection { background: rgba(229, 40, 32, 0.22); color: var(--text-main); }
 .table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
 th { text-align: left; padding: 12px; color: var(--text-dim); border-bottom: 2px solid var(--border-main); }
@@ -115,7 +119,6 @@ th.col-venc, td.col-venc { width: 90px; max-width: 90px; }
 /* Inputs dentro da tabela */
 .input-tabela { background: transparent; border: none; color: var(--text-main); width: 100%; font-size: 13px; border-bottom: 1px dashed #c7ccd3; padding: 4px; caret-color: var(--text-main); }
 .input-tabela:focus { background: var(--surface-muted-strong); color: var(--text-main); outline: none; border-bottom: 1px solid var(--primary-blue); }
-.input-tabela::selection { background: rgba(229, 40, 32, 0.22); color: var(--text-main); }
 .col-valor { text-align: right; }
 
 /* Botões de Ação na Tabela */
