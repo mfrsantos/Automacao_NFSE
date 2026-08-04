@@ -434,6 +434,7 @@ export const renderizarDados = () => {
     const produtos = itens.filter(item => item.tipo === "PRODUTO");
 
     let pVal = 0, eVal = 0, pCount = 0, eCount = 0;
+    let pCountServico = 0, pCountProduto = 0;
 
     const renderGrupo = (lista, container) => {
         let ultimoGrupo = null;
@@ -448,6 +449,11 @@ export const renderizarDados = () => {
             if (!isEnv) {
                 pVal += item.valor;
                 pCount++;
+                if (item.tipo === "SERVICO") {
+                    pCountServico++;
+                } else if (item.tipo === "PRODUTO") {
+                    pCountProduto++;
+                }
             } else {
                 eVal += item.valor;
                 eCount++;
@@ -494,7 +500,7 @@ export const renderizarDados = () => {
 
     document.getElementById('totalPendente').innerText = "R$ " + fmtMoeda(pVal);
     document.getElementById('totalEnviado').innerText = "R$ " + fmtMoeda(eVal);
-    document.getElementById('countPendente').innerText = pCount + " notas";
+    document.getElementById('countPendente').innerHTML = `Total: ${pCount} notas<br>Serviço: ${pCountServico}<br>Produto: ${pCountProduto}`;
     document.getElementById('countEnviado').innerText = eCount + " notas";
 
 
