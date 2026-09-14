@@ -32,6 +32,26 @@ const normalizarCodigoFornecedor = (valor) => {
     return /^\d{6}$/.test(codigo) ? codigo : '';
 };
 
+const obterRelacoesFornecedorCodigo = () => {
+    const historico = obterHistoricoManual();
+    return (historico.fornecedorCodigos || [])
+        .map((relacao) => ({
+            fornecedor: String(relacao.fornecedor || '').trim(),
+            fornecedorNormalizado: normalizarTexto(relacao.fornecedor),
+            codFor: normalizarCodigoFornecedor(relacao.codFor)
+        }))
+        .filter((relacao) => relacao.fornecedorNormalizado && relacao.codFor);
+};
+
+const preencherLista = (lista, valores) => {
+    lista.replaceChildren();
+    [...new Set(valores)].forEach((valor) => {
+        const opcao = document.createElement('option');
+        opcao.value = valor;
+        lista.appendChild(opcao);
+    });
+};
+
 const atualizarSugestoesHistorico = () => {
     const historico = obterHistoricoManual();
 
@@ -39,15 +59,13 @@ const atualizarSugestoesHistorico = () => {
         const lista = document.getElementById(listId);
         if (!lista) return;
 
-        if (historyKey === 'codFor' && document.getElementById('mFornecedor')?.value.trim()) return;
+        if (historyKey === 'codFor' || historyKey === 'fornecedor') return;
 
-        lista.replaceChildren();
-        (historico[historyKey] || []).forEach((valor) => {
-            const opcao = document.createElement('option');
-            opcao.value = valor;
-            lista.appendChild(opcao);
-        });
+        preencherLista(lista, historico[historyKey] || []);
     });
+
+    atualizarCodigosDoFornecedor(document.getElementById('mFornecedor')?.value || '');
+    atualizarFornecedoresDoCodigo(document.getElementById('mCodFor')?.value || '');
 };
 
 const atualizarCodigosDoFornecedor = (nomeFornecedor) => {
@@ -55,37 +73,37 @@ const atualizarCodigosDoFornecedor = (nomeFornecedor) => {
     const listaCodigos = document.getElementById('historicoCodFor');
     if (!inputCodigo || !listaCodigos) return;
 
-    const historico = obterHistoricoManual();
     const fornecedorNormalizado = normalizarTexto(nomeFornecedor);
-    const relacoes = (historico.fornecedorCodigos || [])
-        .map((relacao) => ({
-            fornecedor: normalizarTexto(relacao.fornecedor),
-            codFor: normalizarCodigoFornecedor(relacao.codFor)
-        }))
-        .filter((relacao) => relacao.fornecedor && relacao.codFor);
-    const fornecedoresCorrespondentes = [...new Set(
-        relacoes
-            .filter((relacao) => relacao.fornecedor.startsWith(fornecedorNormalizado))
-            .map((relacao) => relacao.fornecedor)
-    )];
-    const codigos = [...new Set(
-        (historico.fornecedorCodigos || [])
-            .filter((relacao) => fornecedoresCorrespondentes.includes(normalizarTexto(relacao.fornecedor)))
-            .map((relacao) => normalizarCodigoFornecedor(relacao.codFor))
-            .filter(Boolean)
-    )];
-
-    listaCodigos.replaceChildren();
-    codigos.forEach((codigo) => {
-        const opcao = document.createElement('option');
-        opcao.value = codigo;
-        listaCodigos.appendChild(opcao);
-    });
+    const relacoes = obterRelacoesFornecedorCodigo();
+    const codigos = [...new Set(relacoes
+        .filter((relacao) => !fornecedorNormalizado || relacao.fornecedorNormalizado.startsWith(fornecedorNormalizado))
+        .map((relacao) => relacao.codFor))];
+    preencherLista(listaCodigos, codigos);
 
     if (codigos.length === 1) {
         inputCodigo.value = codigos[0];
-    } else if (codigos.length > 1 && !codigos.includes(inputCodigo.value)) {
+    } else if (codigos.length > 1 && !codigos.includes(normalizarCodigoFornecedor(inputCodigo.value))) {
         inputCodigo.value = '';
+    }
+};
+
+const atualizarFornecedoresDoCodigo = (codigoFornecedor) => {
+    const inputFornecedor = document.getElementById('mFornecedor');
+    const listaFornecedores = document.getElementById('historicoFornecedores');
+    if (!inputFornecedor || !listaFornecedores) return;
+
+    const codigoNormalizado = String(codigoFornecedor || '').trim();
+    const relacoes = obterRelacoesFornecedorCodigo();
+    const fornecedores = relacoes
+        .filter((relacao) => !codigoNormalizado || relacao.codFor.startsWith(codigoNormalizado))
+        .map((relacao) => relacao.fornecedor);
+    preencherLista(listaFornecedores, fornecedores);
+
+    const fornecedoresNormalizados = [...new Set(fornecedores.map(normalizarTexto))];
+    if (fornecedoresNormalizados.length === 1) {
+        inputFornecedor.value = fornecedores.find((fornecedor) => normalizarTexto(fornecedor) === fornecedoresNormalizados[0]);
+    } else if (fornecedoresNormalizados.length > 1 && !fornecedoresNormalizados.includes(normalizarTexto(inputFornecedor.value))) {
+        inputFornecedor.value = '';
     }
 };
 
@@ -198,6 +216,9 @@ export const initUI = () => {
     document.getElementById('btnSalvarManual').addEventListener('click', handleSalvarManual);
     document.getElementById('mFornecedor').addEventListener('input', (event) => {
         atualizarCodigosDoFornecedor(event.target.value);
+    });
+    document.getElementById('mCodFor').addEventListener('input', (event) => {
+        atualizarFornecedoresDoCodigo(event.target.value);
     });
     document.getElementById('csvInput').addEventListener('change', handleCSVImport);
     document.getElementById('btnCleanup').addEventListener('click', handleCleanupImport);
