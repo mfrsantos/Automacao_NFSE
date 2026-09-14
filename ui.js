@@ -266,6 +266,9 @@ export const initUI = () => {
     });
     document.getElementById('mCodFor').addEventListener('input', (event) => {
         const codigo = normalizarCodigoFornecedor(event.target.value);
+        if (!event.target.value.trim()) {
+            document.getElementById('mFornecedor').value = '';
+        }
         if (codigo && event.target.value !== codigo) {
             event.target.value = codigo;
         }
