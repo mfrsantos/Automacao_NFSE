@@ -35,8 +35,8 @@ const normalizarNomeFornecedor = (valor) => {
 };
 
 const normalizarCodigoFornecedor = (valor) => {
-    const codigo = String(valor || '').trim();
-    return /^\d{6}$/.test(codigo) ? codigo : '';
+    const codigo = String(valor || '').trim().match(/^(\d{6})(?:\s*-\s*.*)?$/);
+    return codigo ? codigo[1] : '';
 };
 
 const obterRelacoesFornecedorCodigo = () => {
@@ -85,8 +85,7 @@ const preencherListaCodigos = (lista, relacoes) => {
         if (codigos.has(relacao.codFor)) return;
         codigos.add(relacao.codFor);
         const opcao = document.createElement('option');
-        opcao.value = relacao.codFor;
-        opcao.label = `${relacao.codFor} - ${relacao.fornecedor}`;
+        opcao.value = `${relacao.codFor} - ${relacao.fornecedor}`;
         lista.appendChild(opcao);
     });
 };
@@ -132,7 +131,8 @@ const atualizarFornecedoresDoCodigo = (codigoFornecedor) => {
     const listaFornecedores = document.getElementById('historicoFornecedores');
     if (!inputFornecedor || !listaFornecedores) return;
 
-    const codigoNormalizado = String(codigoFornecedor || '').trim();
+    const codigoNormalizado = normalizarCodigoFornecedor(codigoFornecedor)
+        || String(codigoFornecedor || '').trim();
     const relacoes = obterRelacoesFornecedorCodigo();
     const fornecedores = relacoes
         .filter((relacao) => !codigoNormalizado || relacao.codFor.startsWith(codigoNormalizado))
@@ -265,7 +265,11 @@ export const initUI = () => {
         atualizarCodigosDoFornecedor(event.target.value);
     });
     document.getElementById('mCodFor').addEventListener('input', (event) => {
-        atualizarFornecedoresDoCodigo(event.target.value);
+        const codigo = normalizarCodigoFornecedor(event.target.value);
+        if (codigo && event.target.value !== codigo) {
+            event.target.value = codigo;
+        }
+        atualizarFornecedoresDoCodigo(codigo || event.target.value);
     });
     document.getElementById('csvInput').addEventListener('change', handleCSVImport);
     document.getElementById('btnCleanup').addEventListener('click', handleCleanupImport);
@@ -310,7 +314,7 @@ const handleSalvarManual = async () => {
         tipo: document.getElementById('mTipo').value,
         local: document.getElementById('mLocal').value,
         pedido: document.getElementById('mPedido').value,
-        codFor: document.getElementById('mCodFor').value,
+        codFor: normalizarCodigoFornecedor(document.getElementById('mCodFor').value),
         fornecedor: document.getElementById('mFornecedor').value.toUpperCase(),
         cc: document.getElementById('mCC').value,
         valor: parseMoeda(document.getElementById('mValor').value),
