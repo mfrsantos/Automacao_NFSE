@@ -41,13 +41,32 @@ const normalizarCodigoFornecedor = (valor) => {
 
 const obterRelacoesFornecedorCodigo = () => {
     const historico = obterHistoricoManual();
-    return (historico.fornecedorCodigos || [])
+    const relacoes = (historico.fornecedorCodigos || [])
         .map((relacao) => ({
             fornecedor: normalizarNomeFornecedor(relacao.fornecedor),
             fornecedorNormalizado: normalizarTexto(normalizarNomeFornecedor(relacao.fornecedor)),
             codFor: normalizarCodigoFornecedor(relacao.codFor)
         }))
         .filter((relacao) => relacao.fornecedorNormalizado && relacao.codFor);
+
+    const nomesMaisCompletosPorCodigo = new Map();
+    relacoes.forEach((relacao) => {
+        const nomes = nomesMaisCompletosPorCodigo.get(relacao.codFor) || [];
+        const maiorNome = nomes.length ? Math.max(...nomes.map((nome) => nome.length)) : 0;
+        if (relacao.fornecedor.length > maiorNome) {
+            nomesMaisCompletosPorCodigo.set(relacao.codFor, [relacao.fornecedor]);
+        } else if (relacao.fornecedor.length === maiorNome && !nomes.some((nome) => normalizarTexto(nome) === relacao.fornecedorNormalizado)) {
+            nomesMaisCompletosPorCodigo.set(relacao.codFor, [...nomes, relacao.fornecedor]);
+        }
+    });
+
+    return [...nomesMaisCompletosPorCodigo.entries()].flatMap(([codFor, fornecedores]) =>
+        fornecedores.map((fornecedor) => ({
+            fornecedor,
+            fornecedorNormalizado: normalizarTexto(fornecedor),
+            codFor
+        }))
+    );
 };
 
 const preencherLista = (lista, valores) => {
