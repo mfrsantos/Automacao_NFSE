@@ -25,8 +25,10 @@ Sistema de controle de contas a pagar para a empresa Vaccinar, focado no departa
 ## Como Executar
 
 1. Clone o repositório
-2. Abra `index.html` em um navegador moderno (com suporte a ES modules)
-3. Ou use um servidor local: `python -m http.server 8000`
+2. Inicie um servidor local na pasta do projeto: `python -m http.server 8000`
+3. Acesse `http://localhost:8000` no navegador
+
+> Não abra `index.html` diretamente pelo sistema de arquivos (`file://`). O projeto usa módulos ES e imports do Firebase, que exigem uma origem HTTP para funcionar corretamente.
 
 ## Configuração Firebase
 

@@ -6,6 +6,118 @@ import { login, logout } from './auth.js';
 
 let dadosCarregados = {};
 const THEME_STORAGE_KEY = 'erp_vaccinar_theme';
+const MANUAL_HISTORY_KEY = 'erp_vaccinar_manual_history';
+const MANUAL_HISTORY_LIMIT = 50;
+
+const camposComHistorico = [
+    { inputId: 'mCodFor', listId: 'historicoCodFor', historyKey: 'codFor' },
+    { inputId: 'mFornecedor', listId: 'historicoFornecedores', historyKey: 'fornecedor' },
+    { inputId: 'mCC', listId: 'historicoCC', historyKey: 'cc' }
+];
+
+const obterHistoricoManual = () => {
+    try {
+        const historico = JSON.parse(localStorage.getItem(MANUAL_HISTORY_KEY) || '{}');
+        return historico && typeof historico === 'object' ? historico : {};
+    } catch (error) {
+        return {};
+    }
+};
+
+const atualizarSugestoesHistorico = () => {
+    const historico = obterHistoricoManual();
+
+    camposComHistorico.forEach(({ listId, historyKey }) => {
+        const lista = document.getElementById(listId);
+        if (!lista) return;
+
+        lista.replaceChildren();
+        (historico[historyKey] || []).forEach((valor) => {
+            const opcao = document.createElement('option');
+            opcao.value = valor;
+            lista.appendChild(opcao);
+        });
+    });
+};
+
+const normalizarTexto = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR');
+
+const atualizarCodigosDoFornecedor = (nomeFornecedor) => {
+    const inputCodigo = document.getElementById('mCodFor');
+    const listaCodigos = document.getElementById('historicoCodFor');
+    if (!inputCodigo || !listaCodigos) return;
+
+    const historico = obterHistoricoManual();
+    const fornecedorNormalizado = normalizarTexto(nomeFornecedor);
+    const codigos = [...new Set(
+        (historico.fornecedorCodigos || [])
+            .filter((relacao) => normalizarTexto(relacao.fornecedor).startsWith(fornecedorNormalizado))
+            .map((relacao) => relacao.codFor)
+            .filter(Boolean)
+    )];
+
+    listaCodigos.replaceChildren();
+    codigos.forEach((codigo) => {
+        const opcao = document.createElement('option');
+        opcao.value = codigo;
+        listaCodigos.appendChild(opcao);
+    });
+
+    if (codigos.length === 1) {
+        inputCodigo.value = codigos[0];
+    } else if (codigos.length > 1 && !codigos.includes(inputCodigo.value)) {
+        inputCodigo.value = '';
+    }
+};
+
+const salvarNoHistoricoManual = (item) => {
+    const historico = obterHistoricoManual();
+
+    camposComHistorico.forEach(({ historyKey }) => {
+        const valor = String(item[historyKey] || '').trim();
+        if (!valor) return;
+
+        const valoresAtuais = historico[historyKey] || [];
+        const valoresAtualizados = [
+            valor,
+            ...valoresAtuais.filter((itemSalvo) => itemSalvo.toLowerCase() !== valor.toLowerCase())
+        ];
+        historico[historyKey] = valoresAtualizados.slice(0, MANUAL_HISTORY_LIMIT);
+    });
+
+    if (item.fornecedor && item.codFor) {
+        const relacoesAtuais = historico.fornecedorCodigos || [];
+        const relacaoAtual = { fornecedor: item.fornecedor, codFor: item.codFor };
+        historico.fornecedorCodigos = [
+            relacaoAtual,
+            ...relacoesAtuais.filter((relacao) => !(
+                normalizarTexto(relacao.fornecedor) === normalizarTexto(item.fornecedor)
+                && normalizarTexto(relacao.codFor) === normalizarTexto(item.codFor)
+            ))
+        ].slice(0, MANUAL_HISTORY_LIMIT);
+    }
+
+    localStorage.setItem(MANUAL_HISTORY_KEY, JSON.stringify(historico));
+    atualizarSugestoesHistorico();
+};
+
+const importarRelacoesDosDados = (dados) => {
+    const itens = dados && typeof dados === 'object' ? Object.values(dados) : [];
+    const relacoes = itens
+        .filter((item) => item && item.fornecedor && item.codFor)
+        .map((item) => ({ fornecedor: item.fornecedor, codFor: item.codFor }));
+    if (!relacoes.length) return;
+
+    const historico = obterHistoricoManual();
+    const relacoesAtuais = historico.fornecedorCodigos || [];
+    const todasRelacoes = [...relacoes, ...relacoesAtuais];
+    historico.fornecedorCodigos = todasRelacoes.filter((relacao, indice, lista) => lista.findIndex((item) => (
+        normalizarTexto(item.fornecedor) === normalizarTexto(relacao.fornecedor)
+        && normalizarTexto(item.codFor) === normalizarTexto(relacao.codFor)
+    )) === indice).slice(0, MANUAL_HISTORY_LIMIT);
+    localStorage.setItem(MANUAL_HISTORY_KEY, JSON.stringify(historico));
+    atualizarSugestoesHistorico();
+};
 
 const atualizarLabelBotaoTema = (tema) => {
     const botaoTema = document.getElementById('btnThemeToggle');
@@ -52,12 +164,16 @@ const setFiltroMesAtual = () => {
 export const initUI = () => {
     inicializarTema();
     setFiltroMesAtual();
+    atualizarSugestoesHistorico();
 
     // Event listeners
     document.getElementById('btnLogin').addEventListener('click', handleLogin);
     document.getElementById('btnLogout').addEventListener('click', handleLogout);
     document.getElementById('btnThemeToggle').addEventListener('click', alternarTema);
     document.getElementById('btnSalvarManual').addEventListener('click', handleSalvarManual);
+    document.getElementById('mFornecedor').addEventListener('input', (event) => {
+        atualizarCodigosDoFornecedor(event.target.value);
+    });
     document.getElementById('csvInput').addEventListener('change', handleCSVImport);
     document.getElementById('btnCleanup').addEventListener('click', handleCleanupImport);
     document.getElementById('mesFiltro').addEventListener('change', renderizarDados);
@@ -127,6 +243,7 @@ const handleSalvarManual = async () => {
 
     try {
         await salvarItem(item);
+        salvarNoHistoricoManual(item);
         mostrarSucesso('Item salvo com sucesso');
         // Limpar campos
         ["mPedido", "mCodFor", "mFornecedor", "mCC", "mValor", "mVenc"].forEach(id => document.getElementById(id).value = "");
@@ -522,6 +639,7 @@ export const renderizarDados = () => {
 
 export const setDados = (dados) => {
     dadosCarregados = dados;
+    importarRelacoesDosDados(dados);
     renderizarDados();
 };
 

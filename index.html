@@ -90,9 +90,12 @@
                         <option value="NOVA PONTE">NOVA PONTE</option>
                     </select>
                     <input type="text" id="mPedido" placeholder="Nº Pedido">
-                    <input type="text" id="mCodFor" placeholder="Cód. Forn.">
-                    <input type="text" id="mFornecedor" placeholder="Fornecedor">
-                    <input type="text" id="mCC" placeholder="C/C">
+                    <input type="text" id="mCodFor" list="historicoCodFor" placeholder="Cód. Forn.">
+                    <datalist id="historicoCodFor"></datalist>
+                    <input type="text" id="mFornecedor" list="historicoFornecedores" placeholder="Fornecedor">
+                    <datalist id="historicoFornecedores"></datalist>
+                    <input type="text" id="mCC" list="historicoCC" placeholder="C/C">
+                    <datalist id="historicoCC"></datalist>
                     <input type="text" id="mValor" placeholder="Valor (0,00)">
                     <input type="text" id="mVenc" placeholder="Venc. (DD/MM)">
                     <select id="mPagamento">
