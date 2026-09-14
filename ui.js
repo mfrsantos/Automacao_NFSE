@@ -27,6 +27,13 @@ const obterHistoricoManual = () => {
 
 const normalizarTexto = (valor) => String(valor || '').trim().toLocaleLowerCase('pt-BR');
 
+const normalizarNomeFornecedor = (valor) => {
+    const nome = String(valor || '').trim();
+    return normalizarTexto(nome) === 'telefonica cloud'
+        ? 'TELEFONICA CLOUD E TECNOLOGIA'
+        : nome;
+};
+
 const normalizarCodigoFornecedor = (valor) => {
     const codigo = String(valor || '').trim();
     return /^\d{6}$/.test(codigo) ? codigo : '';
@@ -36,8 +43,8 @@ const obterRelacoesFornecedorCodigo = () => {
     const historico = obterHistoricoManual();
     return (historico.fornecedorCodigos || [])
         .map((relacao) => ({
-            fornecedor: String(relacao.fornecedor || '').trim(),
-            fornecedorNormalizado: normalizarTexto(relacao.fornecedor),
+            fornecedor: normalizarNomeFornecedor(relacao.fornecedor),
+            fornecedorNormalizado: normalizarTexto(normalizarNomeFornecedor(relacao.fornecedor)),
             codFor: normalizarCodigoFornecedor(relacao.codFor)
         }))
         .filter((relacao) => relacao.fornecedorNormalizado && relacao.codFor);
@@ -111,7 +118,9 @@ const salvarNoHistoricoManual = (item) => {
     const historico = obterHistoricoManual();
 
     camposComHistorico.forEach(({ historyKey }) => {
-        const valor = String(item[historyKey] || '').trim();
+        const valor = historyKey === 'fornecedor'
+            ? normalizarNomeFornecedor(item[historyKey])
+            : String(item[historyKey] || '').trim();
         if (!valor) return;
 
         const valoresAtuais = historico[historyKey] || [];
@@ -126,7 +135,7 @@ const salvarNoHistoricoManual = (item) => {
         const relacoesAtuais = historico.fornecedorCodigos || [];
         const codigoFornecedor = normalizarCodigoFornecedor(item.codFor);
         if (codigoFornecedor) {
-            const relacaoAtual = { fornecedor: item.fornecedor, codFor: codigoFornecedor };
+            const relacaoAtual = { fornecedor: normalizarNomeFornecedor(item.fornecedor), codFor: codigoFornecedor };
             historico.fornecedorCodigos = [
                 relacaoAtual,
                 ...relacoesAtuais.filter((relacao) => !(
@@ -146,7 +155,7 @@ const importarRelacoesDosDados = (dados) => {
     const itens = dados && typeof dados === 'object' ? Object.values(dados) : [];
     const relacoes = itens
         .filter((item) => item && item.fornecedor && item.codFor)
-        .map((item) => ({ fornecedor: item.fornecedor, codFor: normalizarCodigoFornecedor(item.codFor) }))
+        .map((item) => ({ fornecedor: normalizarNomeFornecedor(item.fornecedor), codFor: normalizarCodigoFornecedor(item.codFor) }))
         .filter((item) => item.codFor);
     if (!relacoes.length) return;
 
@@ -215,6 +224,9 @@ export const initUI = () => {
     document.getElementById('btnThemeToggle').addEventListener('click', alternarTema);
     document.getElementById('btnSalvarManual').addEventListener('click', handleSalvarManual);
     document.getElementById('mFornecedor').addEventListener('input', (event) => {
+        if (!event.target.value.trim()) {
+            document.getElementById('mCodFor').value = '';
+        }
         atualizarCodigosDoFornecedor(event.target.value);
     });
     document.getElementById('mCodFor').addEventListener('input', (event) => {
