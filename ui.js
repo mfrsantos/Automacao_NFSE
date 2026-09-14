@@ -78,6 +78,19 @@ const preencherLista = (lista, valores) => {
     });
 };
 
+const preencherListaCodigos = (lista, relacoes) => {
+    lista.replaceChildren();
+    const codigos = new Set();
+    relacoes.forEach((relacao) => {
+        if (codigos.has(relacao.codFor)) return;
+        codigos.add(relacao.codFor);
+        const opcao = document.createElement('option');
+        opcao.value = relacao.codFor;
+        opcao.label = `${relacao.codFor} - ${relacao.fornecedor}`;
+        lista.appendChild(opcao);
+    });
+};
+
 const atualizarSugestoesHistorico = () => {
     const historico = obterHistoricoManual();
 
@@ -101,10 +114,11 @@ const atualizarCodigosDoFornecedor = (nomeFornecedor) => {
 
     const fornecedorNormalizado = normalizarTexto(nomeFornecedor);
     const relacoes = obterRelacoesFornecedorCodigo();
-    const codigos = [...new Set(relacoes
+    const relacoesCorrespondentes = relacoes
         .filter((relacao) => !fornecedorNormalizado || relacao.fornecedorNormalizado.startsWith(fornecedorNormalizado))
-        .map((relacao) => relacao.codFor))];
-    preencherLista(listaCodigos, codigos);
+        .filter((relacao, indice, lista) => lista.findIndex((item) => item.codFor === relacao.codFor) === indice);
+    const codigos = relacoesCorrespondentes.map((relacao) => relacao.codFor);
+    preencherListaCodigos(listaCodigos, relacoesCorrespondentes);
 
     if (codigos.length === 1) {
         inputCodigo.value = codigos[0];
@@ -124,6 +138,8 @@ const atualizarFornecedoresDoCodigo = (codigoFornecedor) => {
         .filter((relacao) => !codigoNormalizado || relacao.codFor.startsWith(codigoNormalizado))
         .map((relacao) => relacao.fornecedor);
     preencherLista(listaFornecedores, fornecedores);
+
+    if (!/^\d{6}$/.test(codigoNormalizado)) return;
 
     const fornecedoresNormalizados = [...new Set(fornecedores.map(normalizarTexto))];
     if (fornecedoresNormalizados.length === 1) {
